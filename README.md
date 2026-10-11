@@ -176,4 +176,4 @@ antigravity-chinese/
 
 ## 📄 开源许可
 
-本项目采用 [MIT 许可证](LICENSE)。欢迎提交 PR 或 Issue 共同完善汉化词典！
+本项目采用 [MIT 许可证](LICENSE)。欢迎提交 PR 或 Issue 共同完善汉化词典！ 
