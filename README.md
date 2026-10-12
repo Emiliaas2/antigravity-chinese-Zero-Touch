@@ -61,13 +61,8 @@
 
 既然您正在使用 Antigravity，完全可以让 AI 智能体自己帮自己汉化！
 
-- **场景 1：如果你下载了 Release 发布的 ZIP 包**
-  在 Antigravity 聊天输入框中，直接将下载好的 `antigravity-chinese-v1.1.0.zip` 拖入对话框（或用 `@` 引用该压缩包），然后发送这段提示词：
-  > `@[antigravity-chinese-v1.1.0.zip] 请帮我解压该汉化包并完成配置：安装 websockets 依赖、启动后台守护进程并立即热更新汉化当前界面。`
-
-- **场景 2：如果你已经克隆或解压打开了本项目目录**
   在 Antigravity 对话框中直接发送：
-  > `请帮我执行一键安装：运行系统对应的安装脚本（Windows 运行 install.bat，macOS/Linux 运行 install.sh），启动后台守护进程并立即完成界面汉化。`
+  > `请帮我执行一键安装https://github.com/antigravity-chinese/antigravity-chinese/edit/main/README.md,运行系统对应的安装脚本（Windows 运行 install.bat，macOS/Linux 运行 install.sh），启动后台守护进程并立即完成界面汉化。`
 
 AI 智能体将全自动识别操作系统、在终端为您执行安装并立即热更新汉化，全程无需手动敲命令！
 
