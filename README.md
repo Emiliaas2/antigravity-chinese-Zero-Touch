@@ -62,7 +62,9 @@
 既然您正在使用 Antigravity，完全可以让 AI 智能体自己帮自己汉化！
 
   在 Antigravity 对话框中直接发送：
-  > ```请帮我执行一键安装https://github.com/antigravity-chinese/antigravity-chinese-Zero-Touch,运行系统对应的安装脚本（Windows 运行 install.bat，macOS/Linux 运行 install.sh），启动后台守护进程并立即完成界面汉化。```
+  ```bash
+请帮我执行一键安装https://github.com/antigravity-chinese/antigravity-chinese-Zero-Touch,运行系统对应的安装脚本（Windows 运行 install.bat，macOS/Linux 运行 install.sh），启动后台守护进程并立即完成界面汉化。
+  ```
 
 AI 智能体将全自动识别操作系统、在终端为您执行安装并立即热更新汉化，全程无需手动敲命令！
 
