@@ -50,7 +50,7 @@
 - **方式 A (Git 克隆)**：
   ```bash
   git clone https://github.com/antigravity-chinese/antigravity-chinese-Zero-Touch.git
-  cd antigravity-chinese
+  cd antigravity-chinese-Zero-Touch
   ```
 - **方式 B (ZIP 下载)**：
   在 GitHub 页面点击 **Code -> Download ZIP**（或在 Releases 页面下载 `antigravity-chinese-v1.1.0.zip`），解压到任意目录。
