@@ -25,9 +25,8 @@ else
     systemctl --user stop antigravity-zh-watch.service 2>/dev/null || true
     systemctl --user disable antigravity-zh-watch.service 2>/dev/null || true
     rm -f "$HOME/.config/systemd/user/antigravity-zh-watch.service"
-    rm -f "$HOME/.config/autostart/antigravity-zh.desktop"
     systemctl --user daemon-reload 2>/dev/null || true
-    echo "✅ systemd 服务已移除。"
+    echo "✅ systemd 守护服务已移除。"
 fi
 
 # 2. 终止残留后台进程

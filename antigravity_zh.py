@@ -21,6 +21,15 @@ import asyncio
 import urllib.request
 import websockets
 
+if sys.platform == "win32":
+    try:
+        if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 def get_config_dirs():
     dirs = [
         os.path.expanduser("~/Library/Application Support/Antigravity"),
@@ -283,6 +292,18 @@ def build_js(dict_data):
         window.__antigravityZhObserver = observer;
     }
 
+    /* ---------- 8. 前端自驱动补扫定时器（彻底解决首次启动 React 异步挂载漏译） ---------- */
+    if (window.__antigravityZhTimer) clearInterval(window.__antigravityZhTimer);
+    let sweepCount = 0;
+    window.__antigravityZhTimer = setInterval(() => {
+        sweepCount++;
+        window.__antigravityZhWalk();
+        if (sweepCount >= 20) {
+            clearInterval(window.__antigravityZhTimer);
+            window.__antigravityZhTimer = null;
+        }
+    }, 500);
+
     return JSON.stringify({
         ok: true,
         entries: Object.keys(dict).length,
@@ -294,42 +315,25 @@ def build_js(dict_data):
 
 
 async def inject_page_via_cdp(ws_url, dict_data):
-    """通过 WebSocket 连接单个页面目标，注入汉化脚本及新文档生命周期监听。"""
+    """通过 WebSocket 连接单个页面目标，直接注入前端自驱动汉化引擎（无侵入、防崩溃、秒级释放）。"""
     js_code = build_js(dict_data)
     async with websockets.connect(ws_url, max_size=None) as ws:
-        # 1. 注册新文档自动注入（页面刷新或路由导航时内核级自动运行）
-        await ws.send(json.dumps({"id": 1, "method": "Page.enable"}))
-        await ws.recv()
+        # 1. 注册内核级新文档自动注入（刷新/路由跳转即生效，无需等待二次轮询）
+        try:
+            await ws.send(json.dumps({"id": 1, "method": "Page.enable"}))
+            await asyncio.wait_for(ws.recv(), timeout=2.0)
+            await ws.send(json.dumps({
+                "id": 2,
+                "method": "Page.addScriptToEvaluateOnNewDocument",
+                "params": {"source": js_code}
+            }))
+            await asyncio.wait_for(ws.recv(), timeout=2.0)
+        except Exception:
+            pass
 
-        await ws.send(json.dumps({
-            "id": 2,
-            "method": "Page.addScriptToEvaluateOnNewDocument",
-            "params": {"source": js_code}
-        }))
-        await ws.recv()
-
-        # 2. 等待 React DOM 渲染后执行当前页面的热替换
-        for _ in range(30):
-            probe = {
-                "id": 100,
-                "method": "Runtime.evaluate",
-                "params": {
-                    "expression": "!!document.body && document.body.innerText.length > 50",
-                    "returnByValue": True,
-                },
-            }
-            await ws.send(json.dumps(probe))
-            try:
-                raw = await asyncio.wait_for(ws.recv(), timeout=3)
-                if json.loads(raw).get("result", {}).get("result", {}).get("value"):
-                    break
-            except asyncio.TimeoutError:
-                pass
-            await asyncio.sleep(0.5)
-
-        # 3. 对当前 DOM 立即执行注入
+        # 2. 立即针对当前页面执行评估注入
         eval_msg = {
-            "id": 101,
+            "id": 3,
             "method": "Runtime.evaluate",
             "params": {
                 "expression": js_code,
@@ -338,7 +342,7 @@ async def inject_page_via_cdp(ws_url, dict_data):
             },
         }
         await ws.send(json.dumps(eval_msg))
-        raw = await ws.recv()
+        raw = await asyncio.wait_for(ws.recv(), timeout=5.0)
         result = json.loads(raw)
         res = result.get("result", {}).get("result", {})
         val = res.get("value")
@@ -351,19 +355,19 @@ async def inject_page_via_cdp(ws_url, dict_data):
 
 
 async def check_page_status(ws_url):
-    """检测页面当前是否处于汉化就绪状态。"""
+    """检测页面当前是否已完成汉化翻译（确保不是空 DOM 假就绪）。"""
     try:
         async with websockets.connect(ws_url, max_size=None) as ws:
             check_msg = {
                 "id": 1,
                 "method": "Runtime.evaluate",
                 "params": {
-                    "expression": "!!(window.__antigravityZh && window.__antigravityZh.version === 1)",
+                    "expression": "!!(window.__antigravityZh && window.__antigravityZh.translated > 0)",
                     "returnByValue": True,
                 },
             }
             await ws.send(json.dumps(check_msg))
-            raw = await asyncio.wait_for(ws.recv(), timeout=2.5)
+            raw = await asyncio.wait_for(ws.recv(), timeout=2.0)
             res = json.loads(raw)
             return bool(res.get("result", {}).get("result", {}).get("value"))
     except Exception:
@@ -469,8 +473,8 @@ async def watch_daemon():
                         print(f"    ↳ 注入成功，已汉化 {info.get('translated', 0)} 处。", flush=True)
                     except Exception as err:
                         print(f"    ↳ 注入出现异常: {err}", flush=True)
-                elif tick_counter % 3 == 0:
-                    # 页面已汉化，每隔 6 秒轻量唤醒一次遍历，确保异步加载的新组件被汉化
+                elif tick_counter % 8 == 0:
+                    # 页面已汉化，每隔 16 秒轻量唤醒一次遍历，确保异步加载的新组件被汉化
                     await refresh_page_walk(ws)
 
         except Exception as e:
@@ -480,10 +484,94 @@ async def watch_daemon():
         await asyncio.sleep(2.0)
 
 
+def setup_windows_autostart():
+    if sys.platform != "win32":
+        return
+    import shutil
+    import subprocess
+    startup_dir = os.path.join(os.environ.get("APPDATA", ""), r"Microsoft\Windows\Start Menu\Programs\Startup")
+    pythonw = shutil.which("pythonw") or os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+    script = os.path.abspath(__file__)
+    workdir = os.path.dirname(script)
+
+    # 1. 计划任务保活 (完全独立于 Antigravity 客户端生命周期)
+    try:
+        sch_cmd = f'schtasks /create /tn "Antigravity-ZH-Daemon" /tr "\"{pythonw}\" \"{script}\" --watch" /sc onlogon /rl highest /f'
+        subprocess.run(sch_cmd, shell=True, capture_output=True)
+    except Exception:
+        pass
+
+    # 2. 启动文件夹自启快捷方式 (双保险)
+    if os.path.isdir(startup_dir):
+        lnk_path = os.path.join(startup_dir, "Antigravity-ZH.lnk")
+        ps_script = f"""
+$ws = New-Object -COM WScript.Shell
+$s = $ws.CreateShortcut('{lnk_path}')
+$s.TargetPath = '{pythonw}'
+$s.Arguments = '"{script}" --watch'
+$s.WorkingDirectory = '{workdir}'
+$s.WindowStyle = 7
+$s.Save()
+"""
+        tmp_ps = os.path.join(workdir, "_tmp_shortcut.ps1")
+        try:
+            with open(tmp_ps, "w", encoding="utf-8-sig") as f:
+                f.write(ps_script)
+            subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", tmp_ps], capture_output=True)
+        finally:
+            if os.path.exists(tmp_ps):
+                try:
+                    os.remove(tmp_ps)
+                except Exception:
+                    pass
+    print("[*] Windows 系统级开机自启与计划任务已配置完成。")
+
+
+def kill_existing_daemons():
+    if sys.platform == "win32":
+        import subprocess
+        my_pid = os.getpid()
+        ps_cmd = f"Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -like '*antigravity_zh.py*--watch*' -and $_.ProcessId -ne {my_pid} }} | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }}"
+        try:
+            subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd], capture_output=True)
+        except Exception:
+            pass
+
+
+def launch_background_daemon():
+    if sys.platform == "win32":
+        import shutil
+        import subprocess
+        # 优先通过系统计划任务启动，脱离当前进程树完全独立常驻
+        try:
+            res = subprocess.run('schtasks /run /tn "Antigravity-ZH-Daemon"', shell=True, capture_output=True)
+            if res.returncode == 0:
+                print("[*] 后台守护进程已通过系统服务常驻启动。")
+                return
+        except Exception:
+            pass
+        pythonw = shutil.which("pythonw") or os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        script = os.path.abspath(__file__)
+        workdir = os.path.dirname(script)
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
+        p = subprocess.Popen([pythonw, script, "--watch"], cwd=workdir, creationflags=flags)
+        print(f"[*] 后台守护进程已启动 (PID: {p.pid})")
+
+
 if __name__ == "__main__":
-    if "--watch" in sys.argv or "-w" in sys.argv:
+    if "--setup" in sys.argv or "--install" in sys.argv:
+        print("[*] 正在配置 Antigravity 汉化后台守护与开机自启...")
+        kill_existing_daemons()
+        setup_windows_autostart()
+        launch_background_daemon()
+        translations = load_dictionary()
+        print(f"[*] 已加载汉化词条数量: {len(translations)}")
+        asyncio.run(inject_translation(translations))
+        print("[*] 安装与热注入完成！")
+    elif "--watch" in sys.argv or "-w" in sys.argv:
         asyncio.run(watch_daemon())
     else:
         translations = load_dictionary()
         print(f"[*] 已加载汉化词条数量: {len(translations)}")
         asyncio.run(inject_translation(translations))
+

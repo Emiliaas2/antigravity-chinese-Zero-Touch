@@ -80,8 +80,7 @@ EOF
     echo "✅ macOS LaunchAgent 守护服务已配置并激活 ($PLIST_FILE)。"
 else
     SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-    AUTOSTART_DIR="$HOME/.config/autostart"
-    mkdir -p "$SYSTEMD_USER_DIR" "$AUTOSTART_DIR"
+    mkdir -p "$SYSTEMD_USER_DIR"
 
     cat > "$SYSTEMD_USER_DIR/antigravity-zh-watch.service" <<EOF
 [Unit]
@@ -100,20 +99,10 @@ StandardError=journal
 WantedBy=default.target
 EOF
 
-    cat > "$AUTOSTART_DIR/antigravity-zh.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=Antigravity 汉化自动注入
-Exec=$CURRENT_DIR/auto_inject.sh
-X-GNOME-Autostart-enabled=true
-NoDisplay=false
-Hidden=false
-EOF
-
     systemctl --user daemon-reload
     systemctl --user enable antigravity-zh-watch.service
     systemctl --user restart antigravity-zh-watch.service
-    echo "✅ Linux systemd 守护服务已启动并设置开机自启。"
+    echo "✅ Linux systemd 守护服务已启动并设置开机自启（使用官方原生图标即可）。"
 fi
 
 # 4. 尝试对当前运行的实例进行即时汉化

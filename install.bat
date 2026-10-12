@@ -12,7 +12,7 @@ echo.
 python --version >nul 2>&1
 if %errorlevel% neq 0 (
     echo [错误] 未检测到 Python，请先安装 Python 3 并勾选 "Add Python to PATH"！
-    echo 下载地址: https://www.python.org/downloads/
+    echo 官网下载: https://www.python.org/downloads/
     pause
     exit /b 1
 )
@@ -26,27 +26,18 @@ if %errorlevel% neq 0 (
 )
 echo [OK] 运行环境已就绪。
 
-:: 3. 即时汉化
+:: 3. 一键配置开机自启、启动后台守护进程并立即热注入当前界面
 echo.
-echo [2/3] 正在检测并汉化当前打开的 Antigravity 窗口...
-python antigravity_zh.py
-
-:: 4. 配置开机自启
-echo.
-echo [3/3] 配置 Windows 开机后台自启服务...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ws = New-Object -COM WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Startup') + '\Antigravity-ZH.lnk'); $s.TargetPath = (Get-Command pythonw.exe).Source; $s.Arguments = '\"' + '%~dp0antigravity_zh.py' + '\" --watch'; $s.WorkingDirectory = '%~dp0'; $s.WindowStyle = 7; $s.Save()" 2>nul
-if %errorlevel% equ 0 (
-    echo [OK] 开机自启守护已成功添加至 Windows 启动项。
-) else (
-    echo [提示] 开机自启快捷方式已尝试配置。
-)
-
-:: 启动后台守护
-start "" pythonw antigravity_zh.py --watch
+echo [2/3] 配置后台静默守护服务与自启动...
+echo [3/3] 正在检测并汉化当前打开的 Antigravity 窗口...
+python antigravity_zh.py --setup
 
 echo.
 echo ===========================================
 echo 🎉 安装完成！Antigravity 界面已汉化。
-echo 后台守护程序已在运行中，每次启动软件均会自动生效。
+echo.
+echo 💡 说明：
+echo    未在桌面添加任何新图标，请照常使用官方 Antigravity 原版图标启动。
+echo    后台静默守护已就绪，初次启动即会自动完成全中文翻译，永不闪退。
 echo ===========================================
 pause

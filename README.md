@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen?style=flat-square" alt="Platform" />
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square" alt="Python" />
-  <img src="https://img.shields.io/badge/Version-v1.0.0-blue?style=flat-square" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v1.1.0-blue?style=flat-square" alt="Version" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License" />
   <img src="https://img.shields.io/badge/Safety-100%25%20Zero--Touch-success?style=flat-square" alt="Safety" />
 </p>
@@ -49,11 +49,11 @@
 
 - **方式 A (Git 克隆)**：
   ```bash
-  git clone https://github.com/<your-username>/antigravity-chinese.git
+  git clone https://github.com/antigravity-chinese/antigravity-chinese.git
   cd antigravity-chinese
   ```
 - **方式 B (ZIP 下载)**：
-  在 GitHub 页面点击 **Code -> Download ZIP**，解压到任意目录。
+  在 GitHub 页面点击 **Code -> Download ZIP**（或在 Releases 页面下载 `antigravity-chinese-v1.1.0.zip`），解压到任意目录。
 
 ---
 
@@ -62,8 +62,8 @@
 既然您正在使用 Antigravity，完全可以让 AI 智能体自己帮自己汉化！
 
 - **场景 1：如果你下载了 Release 发布的 ZIP 包**
-  在 Antigravity 聊天输入框中，直接将下载好的 `antigravity-chinese.zip` 拖入对话框（或用 `@` 引用该压缩包），然后发送这段提示词：
-  > `@[antigravity-chinese.zip] 请帮我解压该汉化包并完成配置：安装 websockets 依赖、启动后台守护进程并立即热更新汉化当前界面。`
+  在 Antigravity 聊天输入框中，直接将下载好的 `antigravity-chinese-v1.1.0.zip` 拖入对话框（或用 `@` 引用该压缩包），然后发送这段提示词：
+  > `@[antigravity-chinese-v1.1.0.zip] 请帮我解压该汉化包并完成配置：安装 websockets 依赖、启动后台守护进程并立即热更新汉化当前界面。`
 
 - **场景 2：如果你已经克隆或解压打开了本项目目录**
   在 Antigravity 对话框中直接发送：
@@ -78,7 +78,8 @@ AI 智能体将全自动识别操作系统、在终端为您执行安装并立�
 #### 🪟 Windows 用户
 1. 确保电脑已安装 Python 3（安装时勾选了 `Add Python to PATH`）。
 2. 在解压后的目录中，直接**双击运行 `install.bat`**。
-3. 脚本将自动安装依赖、注入当前窗口，并将静默守护程序加入 Windows 开机自启项。
+3. 脚本将自动安装依赖、注入当前窗口，并将静默守护程序加入 Windows 计划任务与开机自启项。
+4. 安装完成后，无需任何额外快捷方式，日常照常双击原版 Antigravity 图标启动，后台服务将自动完成中文翻译！
 
 #### 🍎 macOS & 🐧 Linux 用户
 在终端中进入项目目录，执行：
