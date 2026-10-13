@@ -102,7 +102,7 @@ def build_js(dict_data):
     ]);
 
     function isSkipped(el) {
-        if (!el || el.nodeType !== 1) return true;
+        if (!el || el.nodeType !== 1) return false;
         if (SKIP_TAGS.has(el.tagName)) return true;
         // contenteditable 输入区（对话框）整体跳过
         if (el.isContentEditable) return true;
@@ -180,7 +180,55 @@ def build_js(dict_data):
         [/^Close\s*\(Esc\)$/, () => '关闭 (Esc)'],
         // Run command: xxx
         [/^Run command:\s*(.+)$/, m => `执行命令: ${m[1]}`],
-        [/^Running command$/, () => '正在执行命令']
+        [/^Running command$/, () => '正在执行命令'],
+        // 额度重置时间：Resets in 3d 10h / Resets in 5h 20m / Resets in <1m
+        [/^Resets in\s+(.+)$/i,
+            m => {
+                const t = m[1]
+                    .replace(/<\s*1\s*m\b/gi, '不到 1 分钟')
+                    .replace(/(\d+)\s*d\b/gi, '$1天')
+                    .replace(/(\d+)\s*h\b/gi, '$1小时')
+                    .replace(/(\d+)\s*m\b/gi, '$1分钟')
+                    .replace(/(\d+)\s*s\b/gi, '$1秒');
+                return `${t}后重置`;
+            }],
+        // 额度刷新长文本：You have used some of your weekly limit, it will fully refresh in 3 days, 10 hours.
+        [/^You have used (some|all) of your (.+?) limit,\s*it will fully refresh in\s+(.+?)\.?$/i,
+            m => {
+                const used = m[1].toLowerCase() === 'all' ? '全部' : '部分';
+                const limitType = m[2].toLowerCase().includes('weekly') ? '每周'
+                                : m[2].toLowerCase().includes('five hour') ? '5小时'
+                                : m[2];
+                const t = m[3]
+                    .replace(/(\d+)\s*days?\b/gi, '$1 天')
+                    .replace(/(\d+)\s*hours?\b/gi, '$1 小时')
+                    .replace(/(\d+)\s*minutes?\b/gi, '$1 分钟')
+                    .replace(/(\d+)\s*seconds?\b/gi, '$1 秒')
+                    .replace(/,\s*/g, ' ');
+                return `您已使用${used}${limitType}额度，将在 ${t}后完全刷新。`;
+            }],
+        // 尚未使用额度提示
+        [/^You have not used any of your (.+?) limit\.?$/i,
+            m => {
+                const limitType = m[1].toLowerCase().includes('weekly') ? '每周'
+                                : m[1].toLowerCase().includes('five hour') ? '5小时'
+                                : m[1];
+                return `您尚未使用任何${limitType}额度。`;
+            }],
+        // 模型变动公告：Sonnet 5.5 is now available on paid Pro and Ultra plans...
+        [/^(.+?) is now available on paid Pro and Ultra plans\.\s*Third-party model access will no longer be available on your current plan starting on (.+?)\.?$/i,
+            m => {
+                const months = {
+                    january: '1', february: '2', march: '3', april: '4', may: '5', june: '6',
+                    july: '7', august: '8', september: '9', october: '10', november: '11', december: '12'
+                };
+                let dateStr = m[2];
+                const dm = dateStr.match(/^([A-Za-z]+)\s+(\d+),\s*(\d{4})$/);
+                if (dm && months[dm[1].toLowerCase()]) {
+                    dateStr = `${dm[3]} 年 ${months[dm[1].toLowerCase()]} 月 ${dm[2]} 日`;
+                }
+                return `${m[1]} 现已在付费 Pro 和 Ultra 方案中可用。自 ${dateStr}起，您当前的方案将不再支持第三方模型访问。`;
+            }]
     ];
 
     /* ---------- 4. 单串翻译 ---------- */
@@ -211,7 +259,7 @@ def build_js(dict_data):
         if (!parent || parent.nodeType !== 1) return;
         if (isSkipped(parent)) return;
         let p = parent, depth = 0;
-        while (p && depth++ < 12) {
+        while (p && p.nodeType === 1 && depth++ < 12) {
             if (isSkipped(p) || isConversationRoot(p)) return;
             p = p.parentNode;
         }
@@ -225,7 +273,7 @@ def build_js(dict_data):
     function handleAttrs(el) {
         if (isSkipped(el)) return;
         let p = el, depth = 0;
-        while (p && depth++ < 12) {
+        while (p && p.nodeType === 1 && depth++ < 12) {
             if (isConversationRoot(p)) return;
             p = p.parentNode;
         }
